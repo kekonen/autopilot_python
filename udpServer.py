@@ -1,5 +1,6 @@
 import socket
-import pickle, numpy
+import pickle
+import numpy as np
 
 class MemoryServer:
 	def __init__(self):
@@ -18,12 +19,16 @@ class MemoryServer:
 		while True:
 			data = self.sock.recvfrom(1024)
 			address = data[1]
-			data = data[0].decode('utf8')
+			data = data[0]#.decode('utf8')   keep as bytes for unpickle
+			
 
 			if not data:
 				break
-
-			answer = f'KEK: {data}'
+			
+			unpickled = pickle.loads(data)
+			print(unpickled)
+			answer = f'KEK: lol'
+			# answer = f'KEK: {data}'
 
 			print('Received from:', address)
 			self.sock.sendto(answer.encode('utf8'), address)
