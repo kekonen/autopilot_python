@@ -6,6 +6,7 @@ class MemoryServer:
 	def __init__(self):
 		self.UDP_IP = "127.0.0.1"
 		self.UDP_PORT = 1337
+		self.PACKAGE_SIZE = 4096
 		# self.UDP_PORT_IN  = 228
 
 
@@ -17,7 +18,7 @@ class MemoryServer:
 
 	def serve(self):
 		while True:
-			data = self.sock.recvfrom(1024)
+			data = self.sock.recvfrom(self.PACKAGE_SIZE)
 			address = data[1]
 			data = data[0]#.decode('utf8')   keep as bytes for unpickle
 			

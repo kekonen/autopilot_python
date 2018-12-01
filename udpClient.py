@@ -7,6 +7,7 @@ class MemoryClient:
 		self.UDP_IP = "127.0.0.1"
 		self.UDP_PORT_SERVER = 1337
 		self.UDP_PORT = 1338
+		self.PACKAGE_SIZE = 4096
 		# self.UDP_PORT_IN  = 228
 
 
@@ -18,7 +19,7 @@ class MemoryClient:
 
 	def send(self, data):
 		self.sock.sendto(pickle.dumps(data), (self.UDP_IP, self.UDP_PORT_SERVER))
-		return self.sock.recvfrom(1024)
+		return self.sock.recvfrom(self.PACKAGE_SIZE)
 		# sock.sendto(message, (UDP_IP, UDP_PORT))
 
 a = MemoryClient()
