@@ -2,11 +2,17 @@ import socket
 import pickle
 import numpy as np
 
+# reload(sys)
+# sys.setdefaultencoding("utf-8")
+# from future import unicode_literals
+
+# fgfs --generic=socket,out,10,localhost,1337,udp,my_protocol
+
 class MemoryServer:
-	def __init__(self):
-		self.UDP_IP = "127.0.0.1"
-		self.UDP_PORT = 1337
-		self.PACKAGE_SIZE = 4096
+	def __init__(self, UDP_IP="127.0.0.1", UDP_PORT=1337, PACKAGE_SIZE=1024):
+		self.UDP_IP = UDP_IP
+		self.UDP_PORT = UDP_PORT
+		self.PACKAGE_SIZE = PACKAGE_SIZE
 		# self.UDP_PORT_IN  = 228
 
 
@@ -25,18 +31,20 @@ class MemoryServer:
 
 			if not data:
 				break
+
+
 			
-			unpickled = pickle.loads(data)
-			print(unpickled)
-			answer = f'KEK: lol'
+			# unpickled = pickle.loads(data)
+			# print(unpickled)
+			# answer = f'KEK: lol'
 			# answer = f'KEK: {data}'
 
-			print('Received from:', address)
-			self.sock.sendto(answer.encode('utf8'), address)
+			print('Received from:', address, data.decode())
+			# self.sock.sendto(answer.encode('utf8'), address)
 
 		# sock.sendto(message, (UDP_IP, UDP_PORT))
 
-a = MemoryServer()
+a = MemoryServer("127.0.0.1", 1337, 1024)
 
 a.serve()
 # ncat -v localhost 1337 -u
