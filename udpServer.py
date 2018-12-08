@@ -8,6 +8,16 @@ import numpy as np
 
 # fgfs --generic=socket,out,10,localhost,1337,udp,my_protocol
 
+class Pilot:
+	def __init__(self):
+		self.name = 'kek'
+		# self.order = order
+
+	def handleInput(self, inputArr):
+		print(inputArr)
+
+
+
 class MemoryServer:
 	def __init__(self, UDP_IP="127.0.0.1", UDP_PORT=1337, PACKAGE_SIZE=1024):
 		self.UDP_IP = UDP_IP
@@ -20,7 +30,7 @@ class MemoryServer:
 		self.sock.bind((self.UDP_IP, self.UDP_PORT))
 
 		# self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
+		self.pilot = Pilot()
 
 	def serve(self):
 		while True:
@@ -39,7 +49,9 @@ class MemoryServer:
 			# answer = f'KEK: lol'
 			# answer = f'KEK: {data}'
 
-			print('Received from:', address, data.decode())
+			# print('Received from:', address, data.decode())
+
+			self.pilot.handleInput(np.array(data.decode().strip().split(';')).astype(np.float))
 			# self.sock.sendto(answer.encode('utf8'), address)
 
 		# sock.sendto(message, (UDP_IP, UDP_PORT))
