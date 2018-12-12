@@ -12,8 +12,8 @@ class Pilot:
 		self.name = 'kek'
 		self.delimeter = delimeter
 
-		self.goal_latitude = 21.32525
-		self.goal_longitude = -157.94319 
+		self.dest_latitude = 21.32525     	# 19.754154
+		self.dest_longitude = -157.94319      # -156.044102
 
 		# self.tick = 0
 		self.rad = 0
@@ -24,38 +24,52 @@ class Pilot:
 		# print(rawInput)
 		data = np.array(rawInput.split(self.delimeter)).astype(np.float)
 
-		self.g = data
-		self.heading = data[10]
+		g = data[0]
+		heading = data[10]
+
+		pitch = data[3]
+		roll =  data[4]
+
+		gps_vertical_speed = data[5]
+		gps_ground_speed = data[9]
+
+
+		# Heading
+		gps_latitude = data[7]
+		gps_longitude = data[8]
+
+		delta_lat = self.dest_latitude - gps_latitude
+		delta_long = self.dest_longitude - gps_longitude 
+		rad = math.atan2(delta_lat, delta_long)
+		gps_heading = rad * 180 / math.pi
+		destination_heading = (450 - int(gps_heading)) % 360 # degrees
+		delta_heading = destination_heading - heading
+		# print(delta_heading)
+		if delta_heading > 180: delta_heading -=360
+		if delta_heading < -180: delta_heading +=360
+		
+
+		# Altitude
+		gps_altitude = data[6] #feet    if want meters *=.3048
+
+		print(f'{data[0]}g|atl: {"%.2f" % (gps_altitude)}|pitch: {"%.2f" % (pitch)}|roll: {"%.2f" % (roll)}|ver: {"%.2f" % (gps_vertical_speed)}|gr: {"%.2f" % (gps_ground_speed)}|head:{"%.2f" % (heading)} | gps{destination_heading}| Δhead{delta_heading}') # Δx:{data[7] - self.dest_latitude},Δy:{data[8] - self.dest_longitude}
 
 		
-		d_lat = self.goal_latitude - data[7]
-		d_long = self.goal_longitude - data[8] 
-
-		rad = math.atan2(d_lat, d_long)
-		heading = rad * 180 / math.pi
-		print(int(heading), (450 - int(heading)) % 360)
-		gps_heading = (450 - int(heading)) % 360
-
-		print(data[7], data[8])
-
-		print(f'{data[0]}g|atl: {"%.2f" % (data[2]*0.3048)}:{"%.2f" % (data[6])}|head:{"%.2f" % (data[10])} | Δgps{gps_heading}') # Δx:{data[7] - self.goal_latitude},Δy:{data[8] - self.goal_longitude}
-
-		
 
 
-# G
-# Indicated airspeed
-# Indicated altitude ft
-# Indicated pitch
-# Indicated roll
-# GPS vertical speed
-# GPS altitude
-# GPS latitude
-# GPS longitude
-# GPS ground speed
-# Indicated heading
-# Indicated turn rate
-# Indicated vertical speed
+# G                         0
+# Indicated airspeed		1
+# Indicated altitude ft		2
+# Indicated pitch			3
+# Indicated roll			4
+# GPS vertical speed		5
+# GPS altitude				6
+# GPS latitude				7
+# GPS longitude				8
+# GPS ground speed			9
+# Indicated heading			10
+# Indicated turn rate		11
+# Indicated vertical speed	12
 
 
 class MemoryServer:
