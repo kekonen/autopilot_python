@@ -7,6 +7,8 @@ import math
 # from future import unicode_literals
 # fgfs --generic=socket,out,10,localhost,1337,udp,my_protocol
 
+# maxG = 7
+
 class Pilot:
 	def __init__(self, delimeter= ';'):
 		self.name = 'kek'
@@ -15,8 +17,18 @@ class Pilot:
 		self.dest_latitude = 21.32525     	# 19.754154
 		self.dest_longitude = -157.94319      # -156.044102
 
+		self.last_heading = 0
+		self.last_gps_altitude = 0
+
 		# self.tick = 0
 		self.rad = 0
+
+		self.maxG = 10
+		self.maxDelta_gps_altitude = 50
+		self.maxPitch = 90
+		self.maxRoll = 90
+		self.maxGps_vertical_speed = 20000
+		self.maxGps_ground_speed = 160
 		# self.order = order
 
 	def handleInput(self, rawInput):
@@ -24,11 +36,12 @@ class Pilot:
 		# print(rawInput)
 		data = np.array(rawInput.split(self.delimeter)).astype(np.float)
 
-		g = data[0]
-		heading = data[10]
+		g = data[0] #cool
+		heading = data[10] #cool
+		delta_heading = heading - self.last_heading
 
-		pitch = data[3]
-		roll =  data[4]
+		pitch = data[3] #cool
+		roll =  data[4] #cool
 
 		gps_vertical_speed = data[5]
 		gps_ground_speed = data[9]
@@ -43,17 +56,42 @@ class Pilot:
 		rad = math.atan2(delta_lat, delta_long)
 		gps_heading = rad * 180 / math.pi
 		destination_heading = (450 - int(gps_heading)) % 360 # degrees
-		delta_heading = destination_heading - heading
-		# print(delta_heading)
-		if delta_heading > 180: delta_heading -=360
-		if delta_heading < -180: delta_heading +=360
-		
+		delta_destination_heading = destination_heading - heading
+		# print(delta_destination_heading)
+		if delta_destination_heading >  180: delta_destination_heading -=360
+		if delta_destination_heading < -180: delta_destination_heading +=360
 
 		# Altitude
 		gps_altitude = data[6] #feet    if want meters *=.3048
+		delta_gps_altitude = gps_altitude - self.last_gps_altitude
 
-		print(f'{data[0]}g|atl: {"%.2f" % (gps_altitude)}|pitch: {"%.2f" % (pitch)}|roll: {"%.2f" % (roll)}|ver: {"%.2f" % (gps_vertical_speed)}|gr: {"%.2f" % (gps_ground_speed)}|head:{"%.2f" % (heading)} | gps{destination_heading}| Δhead{delta_heading}') # Δx:{data[7] - self.dest_latitude},Δy:{data[8] - self.dest_longitude}
 
+		# NORMALIZATION
+		g /= self.maxG
+
+		pitch /= self.maxPitch
+		roll /= self.maxRoll
+
+		delta_heading /= 360
+		if delta_heading >  0.5: delta_heading - 1
+		if delta_heading < -0.5: delta_heading + 1
+		
+		delta_destination_heading /= 360
+
+		delta_gps_altitude /= self.maxDelta_gps_altitude
+
+		gps_vertical_speed /= self.maxGps_vertical_speed
+		gps_ground_speed /= self.maxGps_ground_speed
+
+		
+
+		
+
+		print(f'{"%.2f" % g}g|atl: {"%.2f" % (gps_altitude)} Δ{"%.2f" % (delta_gps_altitude)}|pitch: {"%.2f" % (pitch)}|roll: {"%.2f" % (roll)}|ver: {"%.2f" % (gps_vertical_speed)}|gr: {"%.2f" % (gps_ground_speed)}|head:{"%.2f" % (heading)} | gps{destination_heading}| Δhead{delta_destination_heading}') # Δx:{data[7] - self.dest_latitude},Δy:{data[8] - self.dest_longitude}
+
+
+		self.last_heading = heading
+		self.last_gps_altitude = gps_altitude
 		
 
 
