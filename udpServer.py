@@ -9,6 +9,8 @@ import math
 
 # maxG = 7
 
+
+
 class Pilot:
 	def __init__(self, delimeter= ';'):
 		self.name = 'kek'
@@ -92,6 +94,20 @@ class Pilot:
 
 		self.last_heading = heading
 		self.last_gps_altitude = gps_altitude
+
+		back = self.out()
+		return self.delimeter.join([str(val) for val in back])
+		# data = np.array(rawInput.split(self.delimeter)).astype(np.float)
+
+
+	
+	def out(self):
+		aileron = 0
+		elevator = 0
+		rudder = 0
+
+		return [aileron, elevator, rudder]
+
 		
 
 
@@ -132,7 +148,8 @@ class MemoryServer:
 			if not data:
 				break
 
-			self.pilot.handleInput(data.decode().strip())
+			answer = self.pilot.handleInput(data.decode().strip())
+			print(answer)
 
 a = MemoryServer("127.0.0.1", 1337, 1024)
 
