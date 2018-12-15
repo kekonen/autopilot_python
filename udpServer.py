@@ -15,6 +15,7 @@ class Pilot:
 	def __init__(self, delimeter= ';'):
 		self.name = 'kek'
 		self.delimeter = delimeter
+		self.i = 0
 
 		self.dest_latitude = 21.32525     	# 19.754154
 		self.dest_longitude = -157.94319      # -156.044102
@@ -92,21 +93,30 @@ class Pilot:
 		print(f'{"%.2f" % g}g|atl: {"%.2f" % (gps_altitude)} Δ{"%.2f" % (delta_gps_altitude)}|pitch: {"%.2f" % (pitch)}|roll: {"%.2f" % (roll)}|ver: {"%.2f" % (gps_vertical_speed)}|gr: {"%.2f" % (gps_ground_speed)}|head:{"%.2f" % (heading)} | gps{destination_heading}| Δhead{delta_destination_heading}') # Δx:{data[7] - self.dest_latitude},Δy:{data[8] - self.dest_longitude}
 
 
+		back = self.process([g, gps_altitude, delta_gps_altitude, pitch, roll, gps_vertical_speed, gps_ground_speed, heading, destination_heading, delta_destination_heading])
+
 		self.last_heading = heading
 		self.last_gps_altitude = gps_altitude
 
-		back = self.out()
-		return self.delimeter.join([str(val) for val in back])
+		
+		return self.delimeter.join([str(val) for val in back]) + '\n'
 		# data = np.array(rawInput.split(self.delimeter)).astype(np.float)
 
 
 	
-	def out(self):
-		aileron = 0
+	def process(self, input_data):
+		g, gps_altitude, delta_gps_altitude, pitch, roll, gps_vertical_speed, gps_ground_speed, heading, destination_heading, delta_destination_heading = input_data
+
+		throttle = 0
+
+		aileron = round(math.sin(math.pi/100*self.i), 2)
+		self.i+=1
+
+		# aileron = 0
 		elevator = 0
 		rudder = 0
 
-		return [aileron, elevator, rudder]
+		return [throttle, aileron, elevator, rudder]
 
 		
 
@@ -132,6 +142,8 @@ class MemoryServer:
 		self.UDP_PORT = UDP_PORT
 		self.PACKAGE_SIZE = PACKAGE_SIZE
 
+		self.client_address = (self.UDP_IP, 1338)
+
 
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.sock.bind((self.UDP_IP, self.UDP_PORT))
@@ -150,6 +162,7 @@ class MemoryServer:
 
 			answer = self.pilot.handleInput(data.decode().strip())
 			print(answer)
+			self.sock.sendto(answer.encode(), self.client_address)
 
 a = MemoryServer("127.0.0.1", 1337, 1024)
 
