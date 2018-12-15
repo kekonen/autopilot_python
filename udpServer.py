@@ -41,6 +41,8 @@ class Pilot:
 		self.maxGps_ground_speed = 160
 
 		self.rollPID = PID(0.2, 0.01, 0.5)
+		self.headingPID = PID(-0.1, -0.2, 0.2)
+
 		# self.order = order
 
 	def handleInput(self, rawInput):
@@ -119,17 +121,26 @@ class Pilot:
 		# throttle = 0
 
 		self.rollPID.update(roll)
-		out = self.rollPID.output
-		print('o:', out)
+		aileronOut = self.rollPID.output
+		
+		self.headingPID.update(delta_destination_heading)
+		rudderOut = self.headingPID.output
+		print('o:', rudderOut)
 
-		self.aileron += out #
+
+		self.aileron += aileronOut #
+		self.rudder += rudderOut
 		self.i+=1
 
 		# aileron = 0
 		# elevator = 0
 		# rudder = 0
+		if self.rudder > 1:
+			self.rudder = 1
+		elif self.rudder < -1:
+			self.rudder = -1
 
-		return [self.aileron]
+		return [self.aileron, self.rudder]
 
 		
 
