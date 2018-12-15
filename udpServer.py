@@ -41,7 +41,7 @@ class Pilot:
 		self.maxGps_ground_speed = 160
 
 		self.rollPID = PID(0.2, 0.01, 0.5)
-		self.headingPID = PID(-0.1, -0.2, 0.2)
+		self.headingPID = PID(-1.4, -0.3, -1)
 
 		# self.order = order
 
