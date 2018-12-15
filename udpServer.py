@@ -2,6 +2,8 @@ import socket
 import pickle
 import numpy as np
 import math
+
+from pid import PID
 # reload(sys)
 # sys.setdefaultencoding("utf-8")
 # from future import unicode_literals
@@ -20,6 +22,11 @@ class Pilot:
 		self.dest_latitude = 21.32525     	# 19.754154
 		self.dest_longitude = -157.94319      # -156.044102
 
+		self.throttle = 0
+		self.aileron = 0
+		self.elevator = 0
+		self.rudder = 0
+
 		self.last_heading = 0
 		self.last_gps_altitude = 0
 
@@ -32,6 +39,8 @@ class Pilot:
 		self.maxRoll = 90
 		self.maxGps_vertical_speed = 20000
 		self.maxGps_ground_speed = 160
+
+		self.rollPID = PID(0.2, 0.01, 0.5)
 		# self.order = order
 
 	def handleInput(self, rawInput):
@@ -107,16 +116,20 @@ class Pilot:
 	def process(self, input_data):
 		g, gps_altitude, delta_gps_altitude, pitch, roll, gps_vertical_speed, gps_ground_speed, heading, destination_heading, delta_destination_heading = input_data
 
-		throttle = 0
+		# throttle = 0
 
-		aileron = round(math.sin(math.pi/100*self.i), 2)
+		self.rollPID.update(roll)
+		out = self.rollPID.output
+		print('o:', out)
+
+		self.aileron += out #
 		self.i+=1
 
 		# aileron = 0
-		elevator = 0
-		rudder = 0
+		# elevator = 0
+		# rudder = 0
 
-		return [throttle, aileron, elevator, rudder]
+		return [self.aileron]
 
 		
 
