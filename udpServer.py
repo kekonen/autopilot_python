@@ -2,8 +2,11 @@ import socket
 import pickle
 import numpy as np
 import math
+# from collections import deque
+
 
 from pid import PID
+from qagent import DQNAgent
 # reload(sys)
 # sys.setdefaultencoding("utf-8")
 # from future import unicode_literals
@@ -30,6 +33,10 @@ class Pilot:
 		self.last_heading = 0
 		self.last_gps_altitude = 0
 
+		self.last_g = 0
+		self.last_pitch = 0
+		self.last_roll = 0
+
 		# self.tick = 0
 		self.rad = 0
 
@@ -42,6 +49,10 @@ class Pilot:
 
 		self.rollPID = PID(0.2, 0.01, 0.5)
 		self.headingPID = PID(-1.4, -0.3, -1)
+
+		state_size = 1
+		action_size = 1		
+		self.agent = DQNAgent(state_size, action_size)
 
 		# self.order = order
 
@@ -82,15 +93,22 @@ class Pilot:
 
 		# NORMALIZATION
 		g /= self.maxG
+		delta_g = g - self.last_g
+
 
 		pitch /= self.maxPitch
 		roll /= self.maxRoll
+
+		delta_pitch = pitch - self.last_pitch
+		delta_roll = roll - self.last_roll
+
 
 		delta_heading /= 360
 		if delta_heading >  0.5: delta_heading - 1
 		if delta_heading < -0.5: delta_heading + 1
 		
 		delta_destination_heading /= 360
+
 
 		delta_gps_altitude /= self.maxDelta_gps_altitude
 
@@ -104,10 +122,17 @@ class Pilot:
 		print(f'{"%.2f" % g}g|atl: {"%.2f" % (gps_altitude)} Δ{"%.2f" % (delta_gps_altitude)}|pitch: {"%.2f" % (pitch)}|roll: {"%.2f" % (roll)}|ver: {"%.2f" % (gps_vertical_speed)}|gr: {"%.2f" % (gps_ground_speed)}|head:{"%.2f" % (heading)} | gps{destination_heading}| Δhead{delta_destination_heading}') # Δx:{data[7] - self.dest_latitude},Δy:{data[8] - self.dest_longitude}
 
 
-		back = self.process([g, gps_altitude, delta_gps_altitude, pitch, roll, gps_vertical_speed, gps_ground_speed, heading, destination_heading, delta_destination_heading])
+		back = self.process([g, delta_g, gps_altitude, delta_gps_altitude, pitch, roll, delta_pitch, delta_roll, gps_vertical_speed, gps_ground_speed, heading, delta_heading, destination_heading, delta_destination_heading])
+
+		self.last_g = g
+
+		self.last_pitch = pitch
+		self.last_roll = roll
 
 		self.last_heading = heading
 		self.last_gps_altitude = gps_altitude
+
+		self.last_delta_destination_heading = delta_destination_heading
 
 		
 		return self.delimeter.join([str(val) for val in back]) + '\n'
@@ -116,10 +141,17 @@ class Pilot:
 
 	
 	def process(self, input_data):
-		g, gps_altitude, delta_gps_altitude, pitch, roll, gps_vertical_speed, gps_ground_speed, heading, destination_heading, delta_destination_heading = input_data
+		g, delta_g, gps_altitude, delta_gps_altitude, pitch, roll, delta_pitch, delta_roll, gps_vertical_speed, gps_ground_speed, heading, delta_heading, destination_heading, delta_destination_heading = input_data
 
 		# throttle = 0
+		
+		self.act([self.last, [g, pitch, roll, delta_destination_heading]])
 
+		if self.train:
+			self.agent.remember([self.last, [g, pitch, roll, delta_destination_heading]])
+#				   		 		 [					Δ State 1-2										  ], [			State 2						   ], [					Act 1-2, 2-3						  ]
+		delta_state2_3 = self.nn([delta_g, delta_pitch, delta_roll,  delta_heading, delta_gps_altitude], [g, pitch, roll, delta_destination_heading], [self.throttle, self.aileron, self.elevator, self.rudder])
+		
 		self.rollPID.update(roll)
 		aileronOut = self.rollPID.output
 		
@@ -128,8 +160,13 @@ class Pilot:
 		print('o:', rudderOut)
 
 
-		self.aileron += aileronOut #
+		self.aileron += aileronOut
 		self.rudder += rudderOut
+
+		self.last = [delta_g, delta_pitch, delta_roll,  delta_heading, delta_gps_altitude], [g, pitch, roll, delta_destination_heading], [self.throttle, self.aileron, self.elevator, self.rudder]
+		
+
+
 		self.i+=1
 
 		# aileron = 0
