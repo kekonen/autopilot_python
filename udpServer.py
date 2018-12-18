@@ -145,14 +145,14 @@ class Pilot:
 		g, delta_g, gps_altitude, delta_gps_altitude, pitch, roll, delta_pitch, delta_roll, gps_vertical_speed, gps_ground_speed, heading, delta_heading, destination_heading, delta_destination_heading = input_data
 
 		# throttle = 0
-		if self.tact = 0:
+		if self.tact == 0:
 			# Initiate act controls with random values, or actual network can be used
 			self.throttle, self.aileron, self.elevator, self.rudder = np.array(self.throttle, self.aileron, self.elevator, self.rudder) + np.random.rand(4)/4
-		elif self.tact = 1:
+		elif self.tact == 1:
 			#			  [					Δ State 1-2										   ],  [			State 2						 ],  [					Act 1-2, 2-3						 ]
 			self.last = [*[delta_g, delta_pitch, delta_roll,  delta_heading, delta_gps_altitude], *[g, pitch, roll, delta_destination_heading], *[self.throttle, self.aileron, self.elevator, self.rudder]]
-		elif self.tact = 2:
-			self.agent.remember([self.last, [g, pitch, roll, delta_destination_heading]])
+		elif self.tact == 2:
+			self.agent.remember([*self.last, *[g, pitch, roll, delta_destination_heading]])
 			self.tact = -1
 		
 		

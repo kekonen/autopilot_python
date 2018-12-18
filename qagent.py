@@ -29,14 +29,14 @@ class DQNAgent:
                       optimizer=Adam(lr=self.learning_rate))
         return model
         
-    def remember(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
+    def remember(self, input_state, state3):
+        self.memory.append((input_state, state3))
         
-    def act(self, state):
+    def act(self, input_state):
         if np.random.rand() <= self.epsilon:
-            return random.randrange(self.action_size)
-        act_values = self.model.predict(state)
-        return np.argmax(act_values[0])  # returns action
+            return random.randrange(self.action_size) # replace with random output
+        predicted_state3 = self.model.predict(input_state)
+        return predicted_state3  # returns action
         
     def replay(self, batch_size):
         minibatch = random.sample(self.memory, batch_size)
