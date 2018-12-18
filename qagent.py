@@ -18,6 +18,7 @@ class DQNAgent:
         self.epsilon_decay = 0.995
         self.learning_rate = 0.001
         self.model = self._build_model()
+        
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
         model = Sequential()
@@ -27,13 +28,16 @@ class DQNAgent:
         model.compile(loss='mse',
                       optimizer=Adam(lr=self.learning_rate))
         return model
+        
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
+        
     def act(self, state):
         if np.random.rand() <= self.epsilon:
             return random.randrange(self.action_size)
         act_values = self.model.predict(state)
         return np.argmax(act_values[0])  # returns action
+        
     def replay(self, batch_size):
         minibatch = random.sample(self.memory, batch_size)
         for state, action, reward, next_state, done in minibatch:

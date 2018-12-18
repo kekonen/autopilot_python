@@ -21,6 +21,7 @@ class Pilot:
 		self.name = 'kek'
 		self.delimeter = delimeter
 		self.i = 0
+		self.tact = 0
 
 		self.dest_latitude = 21.32525     	# 19.754154
 		self.dest_longitude = -157.94319      # -156.044102
@@ -144,40 +145,22 @@ class Pilot:
 		g, delta_g, gps_altitude, delta_gps_altitude, pitch, roll, delta_pitch, delta_roll, gps_vertical_speed, gps_ground_speed, heading, delta_heading, destination_heading, delta_destination_heading = input_data
 
 		# throttle = 0
-		
-		self.act([self.last, [g, pitch, roll, delta_destination_heading]])
-
-		if self.train:
+		if self.tact = 0:
+			# Initiate act controls with random values, or actual network can be used
+			self.throttle, self.aileron, self.elevator, self.rudder = np.array(self.throttle, self.aileron, self.elevator, self.rudder) + np.random.rand(4)/4
+		elif self.tact = 1:
+			#			  [					Δ State 1-2										   ],  [			State 2						 ],  [					Act 1-2, 2-3						 ]
+			self.last = [*[delta_g, delta_pitch, delta_roll,  delta_heading, delta_gps_altitude], *[g, pitch, roll, delta_destination_heading], *[self.throttle, self.aileron, self.elevator, self.rudder]]
+		elif self.tact = 2:
 			self.agent.remember([self.last, [g, pitch, roll, delta_destination_heading]])
-#				   		 		 [					Δ State 1-2										  ], [			State 2						   ], [					Act 1-2, 2-3						  ]
-		delta_state2_3 = self.nn([delta_g, delta_pitch, delta_roll,  delta_heading, delta_gps_altitude], [g, pitch, roll, delta_destination_heading], [self.throttle, self.aileron, self.elevator, self.rudder])
+			self.tact = -1
 		
-		self.rollPID.update(roll)
-		aileronOut = self.rollPID.output
 		
-		self.headingPID.update(delta_destination_heading)
-		rudderOut = self.headingPID.output
-		print('o:', rudderOut)
-
-
-		self.aileron += aileronOut
-		self.rudder += rudderOut
-
-		self.last = [delta_g, delta_pitch, delta_roll,  delta_heading, delta_gps_altitude], [g, pitch, roll, delta_destination_heading], [self.throttle, self.aileron, self.elevator, self.rudder]
 		
-
-
 		self.i+=1
+		self.tact+=1
 
-		# aileron = 0
-		# elevator = 0
-		# rudder = 0
-		if self.rudder > 1:
-			self.rudder = 1
-		elif self.rudder < -1:
-			self.rudder = -1
-
-		return [self.aileron, self.rudder]
+		return [self.throttle, self.aileron, self.elevator, self.rudder]
 
 		
 
