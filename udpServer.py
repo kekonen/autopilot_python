@@ -51,8 +51,8 @@ class Pilot:
 		self.rollPID = PID(0.2, 0.01, 0.5)
 		self.headingPID = PID(-1.4, -0.3, -1)
 
-		state_size = 1
-		action_size = 1		
+		state_size = 13
+		action_size = 4	
 		self.agent = DQNAgent(state_size, action_size)
 
 		# self.order = order
@@ -152,7 +152,7 @@ class Pilot:
 			#			  [					Δ State 1-2										   ],  [			State 2						 ],  [					Act 1-2, 2-3						 ]
 			self.last = [*[delta_g, delta_pitch, delta_roll,  delta_heading, delta_gps_altitude], *[g, pitch, roll, delta_destination_heading], *[self.throttle, self.aileron, self.elevator, self.rudder]]
 		elif self.tact == 2:
-			self.agent.remember([*self.last, *[g, pitch, roll, delta_destination_heading]])
+			self.agent.remember(self.last, np.array([g, pitch, roll, delta_destination_heading]))
 			self.tact = -1
 		
 		
