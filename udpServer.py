@@ -2,6 +2,8 @@ import socket
 import pickle
 import numpy as np
 import math
+import sys
+import select
 # from collections import deque
 
 
@@ -47,7 +49,7 @@ class Pilot:
 		self.maxRoll = 90
 		self.maxGps_vertical_speed = 20000
 		self.maxGps_ground_speed = 160
-
+# a, b, c, d = np.array(1, 2, 3, 4) + np.random.rand(4)/4
 		self.rollPID = PID(0.2, 0.01, 0.5)
 		self.headingPID = PID(-1.4, -0.3, -1)
 
@@ -147,7 +149,7 @@ class Pilot:
 		# throttle = 0
 		if self.tact == 0:
 			# Initiate act controls with random values, or actual network can be used
-			self.throttle, self.aileron, self.elevator, self.rudder = np.array(self.throttle, self.aileron, self.elevator, self.rudder) + np.random.rand(4)/4
+			self.throttle, self.aileron, self.elevator, self.rudder = np.array((self.throttle, self.aileron, self.elevator, self.rudder)) + np.random.rand(4)/4
 		elif self.tact == 1:
 			#			  [					Δ State 1-2										   ],  [			State 2						 ],  [					Act 1-2, 2-3						 ]
 			self.last = [*[delta_g, delta_pitch, delta_roll,  delta_heading, delta_gps_altitude], *[g, pitch, roll, delta_destination_heading], *[self.throttle, self.aileron, self.elevator, self.rudder]]
@@ -195,18 +197,33 @@ class MemoryServer:
 		self.pilot = Pilot()
 
 	def serve(self):
-		while True:
-			data = self.sock.recvfrom(self.PACKAGE_SIZE)
-			address = data[1]
-			data = data[0]#.decode('utf8')   keep as bytes for unpickle
-			
+		True_var = True
+		default_answer = ''
+		while True_var:
+			input1 = select.select([sys.stdin], [], [], 1)[0]
+			if input1:
+				value = sys.stdin.readline().rstrip()
+				
+				if value == "p":
+					print('Pause')
+					cont = input('Continue?')
+					if not (cont == 'y' or cont == 'Y' or default_answer):
+						sys.exit(0)
+				else:
+					print( "You entered: %s" % value)
+					
+			else:
+				data = self.sock.recvfrom(self.PACKAGE_SIZE)
+				address = data[1]
+				data = data[0]#.decode('utf8')   keep as bytes for unpickle
+				
+				
+				if not data:
+					True_var = False
 
-			if not data:
-				break
-
-			answer = self.pilot.handleInput(data.decode().strip())
-			print(answer)
-			self.sock.sendto(answer.encode(), self.client_address)
+				answer = self.pilot.handleInput(data.decode().strip())
+				print(answer)
+				self.sock.sendto(answer.encode(), self.client_address)
 
 a = MemoryServer("127.0.0.1", 1337, 1024)
 
