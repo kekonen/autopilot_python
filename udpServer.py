@@ -67,6 +67,8 @@ class Pilot:
 
 		self.ithLast = 0
 
+		self.last_reward = 0
+
 
 
 		# self.order = order
@@ -85,7 +87,7 @@ class Pilot:
 		# self.tick += 1
 		# print(rawInput)
 		data = np.array(rawInput.split(self.delimeter)).astype(np.float)
-
+		print('d:',rawInput)
 
 		g = data[0] #cool
 		heading = data[10] #cool
@@ -150,7 +152,8 @@ class Pilot:
 
 		
 		# print('{"%.2f" % g}g|atl: {"%.2f" % (gps_altitude)} Δ{"%.2f" % (delta_gps_altitude)}|pitch: {"%.2f" % (pitch)}|roll: {"%.2f" % (roll)}|ver: {"%.2f" % (gps_vertical_speed)}|gr: {"%.2f" % (gps_ground_speed)}|head:{"%.2f" % (heading)} | gps{}| Δhead{}')
-		print(f'{"%.2f" % g}g|atl: {"%.2f" % (gps_altitude)} Δ{"%.2f" % ((gps_altitude - self.memory[self.ithLast, 4])/self.maxDelta_gps_altitude)}|pitch: {"%.2f" % (pitch)}|roll: {"%.2f" % (roll)}|ver: {"%.2f" % (gps_vertical_speed)}|gr: {"%.2f" % (gps_ground_speed)}|head:{"%.2f" % (heading)} | gps{destination_heading}| Δhead{delta_destination_heading}') # Δx:{data[7] - self.dest_latitude},Δy:{data[8] - self.dest_longitude}
+		if self.i > 0:
+			print(f'{"%.2f" % g}g|atl: {"%.2f" % (gps_altitude)} |pitch: {"%.2f" % (pitch)}|roll: {"%.2f" % (roll)}|ver: {"%.2f" % (gps_vertical_speed)}|gr: {"%.2f" % (gps_ground_speed)}|head:{"%.2f" % (heading)} | gps{destination_heading}| Δhead{delta_destination_heading}') # Δx:{data[7] - self.dest_latitude},Δy:{data[8] - self.dest_longitude}        Δ"%.2f" % ((gps_altitude - self.memory[self.ithLast][0][4])/self.maxDelta_gps_altitude)
 
 
 		back = self.process(state)
@@ -173,22 +176,27 @@ class Pilot:
 	
 	def process(self, state):
 		# g, delta_g, gps_altitude, delta_gps_altitude, pitch, roll, delta_pitch, delta_roll, gps_vertical_speed, gps_ground_speed, heading, delta_heading, destination_heading, delta_destination_heading = input_data
-
-		if self.i > 0:
-
+		reward = 0
+		if self.i > 3:
+			print('memory size:', len(self.memory))
 			reward = self.agent.reward(self.memory[self.ithLast][0], state, self.last_reward)
 
 			self.agent.remember(*self.memory[self.ithLast], reward, state)
-
-			action = self.agent.act(state)
-			
-			# self.agent
-
-
-			self.memory.appendleft((state, action))
 			self.last_reward = reward
-			# previous_action = self.memory[self.ithLast]
-			self.throttle, self.aileron, self.elevator, self.rudder = action
+
+		action = self.agent.act(state)
+		print('a:', action, 'r:', reward)
+		
+		# self.agent
+
+
+		self.memory.appendleft((state, action))
+		
+		# previous_action = self.memory[self.ithLast]
+		self.throttle, self.aileron, self.elevator, self.rudder = action[0]
+		
+
+		
 		## throttle = 0
 		# if self.tact == 0:
 		# 	# Initiate act controls with random values, or actual network can be used
@@ -201,12 +209,12 @@ class Pilot:
 		# 	self.tact = -1
 		
 		if len(self.agent.memory) > self.replay_size:
-			self.replay()
+			self.agent.replay(self.replay_size)
 		
 		self.i+=1
 		# self.tact+=1
 
-		return [self.throttle, self.aileron, self.elevator, self.rudder]
+		return []#[self.throttle, self.aileron, self.elevator, self.rudder]
 
 		
 
@@ -260,14 +268,15 @@ class MemoryServer:
 				data = self.sock.recvfrom(self.PACKAGE_SIZE)
 				address = data[1]
 				data = data[0]#.decode('utf8')   keep as bytes for unpickle
-				
+				print('data:', data)
 				
 				if not data:
 					True_var = False
 
 				answer = self.pilot.handleInput(data.decode().strip())
 				print(answer)
-				self.sock.sendto(answer.encode(), self.client_address)
+				if len(answer) > 0:
+					self.sock.sendto(answer.encode(), self.client_address)
 
 a = MemoryServer("127.0.0.1", 1337, 1024)
 

@@ -10,7 +10,7 @@ from keras.optimizers import Adam
 from keras.losses import mse
 import keras.backend as K
 
-mse = lambda A, B, ax=0: (np.square(A - B)).mean(axis=ax)
+mse_custom = lambda A, B, ax=0: (np.square(A - B)).mean(axis=ax)
 
 
 class DQNAgent:
@@ -28,7 +28,7 @@ class DQNAgent:
         self.discount_rate_last = 0.7
         
     def _build_model(self):
-        inputs = Input(shape=(self.state_size))
+        inputs = Input(shape=(self.state_size, ))
 
         x = Dense(24, activation='selu')(inputs)
         x = Dense(24, activation='selu')(x)
@@ -45,7 +45,7 @@ class DQNAgent:
         
         # model.compile(loss=custom_loss_wrapper(input_reward), optimizer='adam', metrics=['accuracy'])
 #                                                               K.variable(rewardy, dtype=yTrue.dtype)
-        model.compile(loss=lambda yTrue, yPred: K.sum(reward * K.mse(yTrue, yPred)), optimizer=Adam(lr=self.learning_rate))
+        model.compile(loss=lambda yTrue, yPred: K.sum(reward * mse(yTrue, yPred)), optimizer=Adam(lr=self.learning_rate))
         return model
         
     def remember(self, state, action, reward, next_state):
@@ -60,15 +60,17 @@ class DQNAgent:
 
         nsa = np.array(next_state[1:5])
 
-        dS = mse(des, sa) - mse(des, nsa)
+        dS = mse_custom(des, sa) - mse_custom(des, nsa)
 
         return last_reward*self.discount_rate_last + dS
         
         
     def act(self, state):
         if np.random.rand() <= self.epsilon:
-            return random.randrange(self.action_size) # replace with random output
-        action = self.model.predict(state)
+            print('Act random')
+            return (np.random.random((1,4))*2 -1 )/5  # replace with random output
+        print('Act self')
+        action = self.model.predict([state.reshape((1,14)),  np.ones((1,1))])
         return action  # returns action
         
     def replay(self, batch_size):
@@ -77,7 +79,8 @@ class DQNAgent:
             reward =+ self.gamma * self.reward(state, next_state, reward)
             # target_f = self.model.predict(state)
             # target_f[0][action] = target
-            self.model.fit([state, reward], action, epochs=1, verbose=0)
+            # print("state ---------->", state.shape, reward.reshape((1,1)), action.shape)
+            self.model.fit([state.reshape((1,14)), reward.reshape((1,1))], action, epochs=1, verbose=0)
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
