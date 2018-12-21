@@ -214,7 +214,7 @@ class Pilot:
 		self.i+=1
 		# self.tact+=1
 
-		return []#[self.throttle, self.aileron, self.elevator, self.rudder]
+		return [self.throttle, self.aileron, self.elevator, self.rudder] #[]#
 
 		
 
@@ -251,32 +251,19 @@ class MemoryServer:
 	def serve(self):
 		True_var = True
 		default_answer = ''
-		while True_var:
-			input1 = select.select([sys.stdin], [], [], 1)[0]
-			if input1:
-				value = sys.stdin.readline().rstrip()
-				
-				if value == "p":
-					print('Pause')
-					cont = input('Continue?')
-					if not (cont == 'y' or cont == 'Y' or default_answer):
-						sys.exit(0)
-				else:
-					print( "You entered: %s" % value)
-					
-			else:
-				data = self.sock.recvfrom(self.PACKAGE_SIZE)
-				address = data[1]
-				data = data[0]#.decode('utf8')   keep as bytes for unpickle
-				print('data:', data)
-				
-				if not data:
-					True_var = False
+		while True:
+			data = self.sock.recvfrom(self.PACKAGE_SIZE)
+			address = data[1]
+			data = data[0]#.decode('utf8')   keep as bytes for unpickle
+			
 
-				answer = self.pilot.handleInput(data.decode().strip())
-				print(answer)
-				if len(answer) > 0:
-					self.sock.sendto(answer.encode(), self.client_address)
+			if not data:
+				break
+
+			answer = self.pilot.handleInput(data.decode().strip())
+			print(answer)
+			if len(answer) > 0:
+				self.sock.sendto(answer.encode(), self.client_address)
 
 a = MemoryServer("127.0.0.1", 1337, 1024)
 
