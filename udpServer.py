@@ -4,7 +4,7 @@ import numpy as np
 import math
 import sys
 import select
-# from collections import deque
+from collections import deque
 
 
 from pid import PID
@@ -16,6 +16,7 @@ from qagent import DQNAgent
 
 # maxG = 7
 
+mse = lambda A, B, ax=0: (np.square(A - B)).mean(axis=ax)
 
 
 class Pilot:
@@ -27,6 +28,8 @@ class Pilot:
 
 		self.dest_latitude = 21.32525     	# 19.754154
 		self.dest_longitude = -157.94319      # -156.044102
+
+		self.desired_pitch, self.desired_roll = 0, 0
 
 		self.throttle = 0
 		self.aileron = 0
@@ -45,6 +48,8 @@ class Pilot:
 
 		self.maxG = 10
 		self.maxDelta_gps_altitude = 50
+		self.maxGps_altitude = 27000
+
 		self.maxPitch = 90
 		self.maxRoll = 90
 		self.maxGps_vertical_speed = 20000
@@ -53,20 +58,41 @@ class Pilot:
 		self.rollPID = PID(0.2, 0.01, 0.5)
 		self.headingPID = PID(-1.4, -0.3, -1)
 
-		state_size = 13
+		state_size = 14
 		action_size = 4	
 		self.agent = DQNAgent(state_size, action_size)
+		self.memory = deque(maxlen=5) 
+
+		self.replay_size = 12
+
+		self.ithLast = 0
+
+
 
 		# self.order = order
+		# 
+	# def reward(self, next_state):
+	# 	des = np.array(self.memory[self.ithLast][10:])
+	# 	sa = np.array(self.memory[self.ithLast][1:5])
+		
+	# 	nsa = np.array(next_state[1:5])
+		
+	# 	dS = mse(des, sa) - mse(des, nsa)
+
+	# 	return self.last_reward * self.discount_rate_last + dS
 
 	def handleInput(self, rawInput):
 		# self.tick += 1
 		# print(rawInput)
 		data = np.array(rawInput.split(self.delimeter)).astype(np.float)
 
+
 		g = data[0] #cool
 		heading = data[10] #cool
-		delta_heading = heading - self.last_heading
+		# delta_heading = heading - self.memory[self.ithLast, 9]
+		# delta_heading /= 360
+		# if delta_heading >  0.5: delta_heading - 1
+		# if delta_heading < -0.5: delta_heading + 1
 
 		pitch = data[3] #cool
 		roll =  data[4] #cool
@@ -91,51 +117,53 @@ class Pilot:
 
 		# Altitude
 		gps_altitude = data[6] #feet    if want meters *=.3048
-		delta_gps_altitude = gps_altitude - self.last_gps_altitude
+		# delta_gps_altitude = gps_altitude - self.memory[self.ithLast, 4]
 
 
 		# NORMALIZATION
 		g /= self.maxG
-		delta_g = g - self.last_g
+		# delta_g = g - self.memory[1, 0]
 
 
 		pitch /= self.maxPitch
 		roll /= self.maxRoll
 
-		delta_pitch = pitch - self.last_pitch
-		delta_roll = roll - self.last_roll
+		# delta_pitch = pitch - self.memory[self.ithLast, 1]
+		# delta_roll = roll - self.memory[self.ithLast, 2]
 
 
-		delta_heading /= 360
-		if delta_heading >  0.5: delta_heading - 1
-		if delta_heading < -0.5: delta_heading + 1
+		
 		
 		delta_destination_heading /= 360
 
-
-		delta_gps_altitude /= self.maxDelta_gps_altitude
+		gps_altitude /= self.maxGps_altitude
 
 		gps_vertical_speed /= self.maxGps_vertical_speed
 		gps_ground_speed /= self.maxGps_ground_speed
 
-		
+
+		# delta_destination_pitch /= 360
+#			 10 + 3   [:8]  [8:]
+		actual_state = [g, pitch, roll, heading, gps_altitude, gps_latitude, gps_longitude, gps_vertical_speed, gps_ground_speed, delta_destination_heading]
+		target = [self.desired_pitch, self.desired_roll, 0, gps_altitude]
+		state = np.array(actual_state + target)
 
 		
+		# print('{"%.2f" % g}g|atl: {"%.2f" % (gps_altitude)} Δ{"%.2f" % (delta_gps_altitude)}|pitch: {"%.2f" % (pitch)}|roll: {"%.2f" % (roll)}|ver: {"%.2f" % (gps_vertical_speed)}|gr: {"%.2f" % (gps_ground_speed)}|head:{"%.2f" % (heading)} | gps{}| Δhead{}')
+		print(f'{"%.2f" % g}g|atl: {"%.2f" % (gps_altitude)} Δ{"%.2f" % ((gps_altitude - self.memory[self.ithLast, 4])/self.maxDelta_gps_altitude)}|pitch: {"%.2f" % (pitch)}|roll: {"%.2f" % (roll)}|ver: {"%.2f" % (gps_vertical_speed)}|gr: {"%.2f" % (gps_ground_speed)}|head:{"%.2f" % (heading)} | gps{destination_heading}| Δhead{delta_destination_heading}') # Δx:{data[7] - self.dest_latitude},Δy:{data[8] - self.dest_longitude}
 
-		print(f'{"%.2f" % g}g|atl: {"%.2f" % (gps_altitude)} Δ{"%.2f" % (delta_gps_altitude)}|pitch: {"%.2f" % (pitch)}|roll: {"%.2f" % (roll)}|ver: {"%.2f" % (gps_vertical_speed)}|gr: {"%.2f" % (gps_ground_speed)}|head:{"%.2f" % (heading)} | gps{destination_heading}| Δhead{delta_destination_heading}') # Δx:{data[7] - self.dest_latitude},Δy:{data[8] - self.dest_longitude}
 
+		back = self.process(state)
 
-		back = self.process([g, delta_g, gps_altitude, delta_gps_altitude, pitch, roll, delta_pitch, delta_roll, gps_vertical_speed, gps_ground_speed, heading, delta_heading, destination_heading, delta_destination_heading])
+		# self.last_g = g
 
-		self.last_g = g
+		# self.last_pitch = pitch
+		# self.last_roll = roll
 
-		self.last_pitch = pitch
-		self.last_roll = roll
+		# self.last_heading = heading
+		# self.last_gps_altitude = gps_altitude
 
-		self.last_heading = heading
-		self.last_gps_altitude = gps_altitude
-
-		self.last_delta_destination_heading = delta_destination_heading
+		# self.last_delta_destination_heading = delta_destination_heading
 
 		
 		return self.delimeter.join([str(val) for val in back]) + '\n'
@@ -143,24 +171,40 @@ class Pilot:
 
 
 	
-	def process(self, input_data):
-		g, delta_g, gps_altitude, delta_gps_altitude, pitch, roll, delta_pitch, delta_roll, gps_vertical_speed, gps_ground_speed, heading, delta_heading, destination_heading, delta_destination_heading = input_data
+	def process(self, state):
+		# g, delta_g, gps_altitude, delta_gps_altitude, pitch, roll, delta_pitch, delta_roll, gps_vertical_speed, gps_ground_speed, heading, delta_heading, destination_heading, delta_destination_heading = input_data
 
-		# throttle = 0
-		if self.tact == 0:
-			# Initiate act controls with random values, or actual network can be used
-			self.throttle, self.aileron, self.elevator, self.rudder = np.array((self.throttle, self.aileron, self.elevator, self.rudder)) + np.random.rand(4)/4
-		elif self.tact == 1:
-			#			  [					Δ State 1-2										   ],  [			State 2						 ],  [					Act 1-2, 2-3						 ]
-			self.last = [*[delta_g, delta_pitch, delta_roll,  delta_heading, delta_gps_altitude], *[g, pitch, roll, delta_destination_heading], *[self.throttle, self.aileron, self.elevator, self.rudder]]
-		elif self.tact == 2:
-			self.agent.remember(self.last, np.array([g, pitch, roll, delta_destination_heading]))
-			self.tact = -1
+		if self.i > 0:
+
+			reward = self.agent.reward(self.memory[self.ithLast][0], state, self.last_reward)
+
+			self.agent.remember(*self.memory[self.ithLast], reward, state)
+
+			action = self.agent.act(state)
+			
+			# self.agent
+
+
+			self.memory.appendleft((state, action))
+			self.last_reward = reward
+			# previous_action = self.memory[self.ithLast]
+			self.throttle, self.aileron, self.elevator, self.rudder = action
+		## throttle = 0
+		# if self.tact == 0:
+		# 	# Initiate act controls with random values, or actual network can be used
+		# 	self.throttle, self.aileron, self.elevator, self.rudder = np.array((self.throttle, self.aileron, self.elevator, self.rudder)) + np.random.rand(4)/4
+		# elif self.tact == 1:
+		# 	#			  [					Δ State 1-2										   ],  [			State 2						 ],  [					Act 1-2, 2-3						 ]
+		# 	self.last = [*[delta_g, delta_pitch, delta_roll,  delta_heading, delta_gps_altitude], *[g, pitch, roll, delta_destination_heading], *[self.throttle, self.aileron, self.elevator, self.rudder]]
+		# elif self.tact == 2:
+		# 	self.agent.remember(self.last, np.array([g, pitch, roll, delta_destination_heading]))
+		# 	self.tact = -1
 		
-		
+		if len(self.agent.memory) > self.replay_size:
+			self.replay()
 		
 		self.i+=1
-		self.tact+=1
+		# self.tact+=1
 
 		return [self.throttle, self.aileron, self.elevator, self.rudder]
 
