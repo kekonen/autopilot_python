@@ -13,6 +13,7 @@ from qagent import DQNAgent
 # sys.setdefaultencoding("utf-8")
 # from future import unicode_literals
 # fgfs --generic=socket,out,10,localhost,1337,udp,my_out_protocol --generic=socket,in,10,,1338,udp,my_in_protocol --enable-fuel-freeze
+# --generic=socket,out,10,localhost,1337,udp,my_out_protocol --generic=socket,in,10,,1338,udp,my_in_protocol --prop:/sim/sound/voices/enabled=false --enable-fuel-freeze --altitude=10000 --heading=0
 
 # maxG = 7
 

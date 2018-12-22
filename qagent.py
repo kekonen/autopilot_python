@@ -32,7 +32,16 @@ class DQNAgent:
 
         x = Dense(24, activation='selu')(inputs)
         x = Dense(24, activation='selu')(x)
-        action = Dense(self.action_size, activation='sigmoid')(x)
+        action = Dense(self.action_size, activation='tanh')(x)
+
+        # throttle = Dense(1,activation='sigmoid',init=lambda shape, name: normal(shape, scale=1e-4, name=name))(h1)  
+        # aileron = Dense(1,activation='tanh',init=lambda shape, name: normal(shape, scale=1e-4, name=name))(h1)  
+        # elevator = Dense(1,activation='tanh',init=lambda shape, name: normal(shape, scale=1e-4, name=name))(h1)  
+        # rudder = Dense(1,activation='tanh',init=lambda shape, name: normal(shape, scale=1e-4, name=name))(h1)  
+
+        # Brake = Dense(1,activation='sigmoid',init=lambda shape, name: normal(shape, scale=1e-4, name=name))(h1) 
+        # V = merge([Steering,Acceleration,Brake],mode='concat')     
+
         reward = Input(shape=(1,))
 
         model = Model(inputs=[inputs, reward], outputs=action)
