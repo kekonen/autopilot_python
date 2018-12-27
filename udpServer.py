@@ -19,6 +19,21 @@ from qagent import DQNAgent
 
 mse = lambda A, B, ax=0: (np.square(A - B)).mean(axis=ax)
 
+def convert_base(num, to_base=10, from_base=10):
+    # first convert to decimal number
+    if isinstance(num, str):
+        n = int(num, from_base)
+    else:
+        n = int(num)
+    # now convert decimal to 'to_base' base
+    alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    if n < to_base:
+        return alphabet[n]
+    else:
+        return convert_base(n // to_base, to_base) + alphabet[n % to_base]
+
+
+
 
 class Pilot:
 	def __init__(self, delimeter= ';'):
@@ -60,7 +75,7 @@ class Pilot:
 		self.headingPID = PID(-1.4, -0.3, -1)
 
 		state_size = 14
-		action_size = 4	
+		action_size = 81 # 9 directions * 3 throttle
 		self.agent = DQNAgent(state_size, action_size)
 		self.memory = deque(maxlen=5) 
 
@@ -69,20 +84,6 @@ class Pilot:
 		self.ithLast = 0
 
 		self.last_reward = 0
-
-
-
-		# self.order = order
-		# 
-	# def reward(self, next_state):
-	# 	des = np.array(self.memory[self.ithLast][10:])
-	# 	sa = np.array(self.memory[self.ithLast][1:5])
-		
-	# 	nsa = np.array(next_state[1:5])
-		
-	# 	dS = mse(des, sa) - mse(des, nsa)
-
-	# 	return self.last_reward * self.discount_rate_last + dS
 
 	def handleInput(self, rawInput):
 		# self.tick += 1
@@ -130,13 +131,7 @@ class Pilot:
 
 		pitch /= self.maxPitch
 		roll /= self.maxRoll
-
-		# delta_pitch = pitch - self.memory[self.ithLast, 1]
-		# delta_roll = roll - self.memory[self.ithLast, 2]
-
-
-		
-		
+	
 		delta_destination_heading /= 360
 
 		gps_altitude /= self.maxGps_altitude
@@ -144,34 +139,35 @@ class Pilot:
 		gps_vertical_speed /= self.maxGps_vertical_speed
 		gps_ground_speed /= self.maxGps_ground_speed
 
-
-		# delta_destination_pitch /= 360
-#			 10 + 3   [:8]  [8:]
-		actual_state = [g, pitch, roll, heading, gps_altitude, gps_latitude, gps_longitude, gps_vertical_speed, gps_ground_speed, delta_destination_heading]
-		target = [self.desired_pitch, self.desired_roll, 0, gps_altitude]
+		actual_state = [g, pitch, roll, heading, gps_altitude, gps_latitude, gps_longitude, gps_vertical_speed, gps_ground_speed, delta_destination_heading] # 10
+		target = [self.desired_pitch, self.desired_roll, 0, gps_altitude] # 4
 		state = np.array(actual_state + target)
 
-		
-		# print('{"%.2f" % g}g|atl: {"%.2f" % (gps_altitude)} Δ{"%.2f" % (delta_gps_altitude)}|pitch: {"%.2f" % (pitch)}|roll: {"%.2f" % (roll)}|ver: {"%.2f" % (gps_vertical_speed)}|gr: {"%.2f" % (gps_ground_speed)}|head:{"%.2f" % (heading)} | gps{}| Δhead{}')
 		if self.i > 0:
 			print(f'{"%.2f" % g}g|atl: {"%.2f" % (gps_altitude)} |pitch: {"%.2f" % (pitch)}|roll: {"%.2f" % (roll)}|ver: {"%.2f" % (gps_vertical_speed)}|gr: {"%.2f" % (gps_ground_speed)}|head:{"%.2f" % (heading)} | gps{destination_heading}| Δhead{delta_destination_heading}') # Δx:{data[7] - self.dest_latitude},Δy:{data[8] - self.dest_longitude}        Δ"%.2f" % ((gps_altitude - self.memory[self.ithLast][0][4])/self.maxDelta_gps_altitude)
 
 
 		back = self.process(state)
 
-		# self.last_g = g
-
-		# self.last_pitch = pitch
-		# self.last_roll = roll
-
-		# self.last_heading = heading
-		# self.last_gps_altitude = gps_altitude
-
-		# self.last_delta_destination_heading = delta_destination_heading
-
-		
 		return self.delimeter.join([str(val) for val in back]) + '\n'
 		# data = np.array(rawInput.split(self.delimeter)).astype(np.float)
+
+	
+	def reward(self, state, next_state):
+        des = np.array(state[10:])
+        sa = np.array(state[1:5])
+
+        nsa = np.array(next_state[1:5])
+
+        dS = mse_custom(des, sa) - mse_custom(des, nsa)
+
+        return dS # + last_reward*self.discount_rate_last
+	
+	def parseAction(self, raw_action):
+		raw_action.reshape((3,3,3,3))
+		number = raw_action.argmax() + 1
+		triple_str = convert_base(number, 3, 10)[::-1] + '    '
+
 
 
 	
@@ -180,21 +176,18 @@ class Pilot:
 		reward = 0
 		if self.i > 3:
 			print('memory size:', len(self.memory))
-			reward = self.agent.reward(self.memory[self.ithLast][0], state, self.last_reward)
+			reward = self.reward(self.memory[self.ithLast][0], state)
 
 			self.agent.remember(*self.memory[self.ithLast], reward, state)
-			self.last_reward = reward
+			# self.last_reward = reward
 
 		action = self.agent.act(state)
 		print('a:', action, 'r:', reward)
-		
-		# self.agent
-
 
 		self.memory.appendleft((state, action))
-		
+
 		# previous_action = self.memory[self.ithLast]
-		self.throttle, self.aileron, self.elevator, self.rudder = action[0]
+		self.throttle, self.aileron, self.elevator, self.rudder = self.parseAction(action[0])
 		
 
 		
