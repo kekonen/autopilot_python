@@ -74,7 +74,7 @@ class Pilot:
 		self.rollPID = PID(0.2, 0.01, 0.5)
 		self.headingPID = PID(-1.4, -0.3, -1)
 
-		state_size = 14
+		state_size = 12
 		action_size = 81 # 9 directions * 3 throttle
 		self.agent = DQNAgent(state_size, action_size)
 		self.memory = deque(maxlen=5) 
@@ -139,8 +139,8 @@ class Pilot:
 		gps_vertical_speed /= self.maxGps_vertical_speed
 		gps_ground_speed /= self.maxGps_ground_speed
 
-		actual_state = [g, pitch, roll, heading, gps_altitude, gps_latitude, gps_longitude, gps_vertical_speed, gps_ground_speed, delta_destination_heading] # 10
-		target = [self.desired_pitch, self.desired_roll, 0, gps_altitude] # 4
+		actual_state = [g, pitch, roll, heading, gps_altitude, gps_vertical_speed, gps_ground_speed, delta_destination_heading] # 8 , gps_latitude, gps_longitude
+		target = [self.desired_pitch, self.desired_roll, 0, 0.5] # 4
 		state = np.array(actual_state + target)
 
 		if self.i > 0:
@@ -153,20 +153,27 @@ class Pilot:
 		# data = np.array(rawInput.split(self.delimeter)).astype(np.float)
 
 	
-	def reward(self, state, next_state):
-        des = np.array(state[10:])
-        sa = np.array(state[1:5])
+	def reward(self, s0, s1):
+		dif0 = s0[8]-s0[1] + s0[9]-s0[2] + s0[10]-s0[3] + s0[11]-s0[4]
+		dif1 = s1[8]-s1[1] + s1[9]-s1[2] + s1[10]-s1[3] + s1[11]-s1[4]
 
-        nsa = np.array(next_state[1:5])
+		reward = dif0-dif1
 
-        dS = mse_custom(des, sa) - mse_custom(des, nsa)
+		return reward
 
-        return dS # + last_reward*self.discount_rate_last
+        # des = np.array(state[10:])
+        # sa = np.array(state[1:5])
+
+        # nsa = np.array(next_state[1:5])
+
+        # dS = mse_custom(des, sa) - mse_custom(des, nsa)
+
+        # return dS # + last_reward*self.discount_rate_last
 	
 	def parseAction(self, raw_action):
-		raw_action.reshape((3,3,3,3))
-		number = raw_action.argmax() + 1
-		triple_str = convert_base(number, 3, 10)[::-1] + '    '
+		# raw_action.reshape((3,3,3,3))
+		# number = raw_action.argmax() + 1
+		return np.array([int(i)-1 for i in (convert_base(raw_action, 3, 10)[::-1] + '000')[:4]]) * 0.05
 
 
 
@@ -187,7 +194,12 @@ class Pilot:
 		self.memory.appendleft((state, action))
 
 		# previous_action = self.memory[self.ithLast]
-		self.throttle, self.aileron, self.elevator, self.rudder = self.parseAction(action[0])
+		print(action)
+		parsed_action = self.parseAction(action)
+
+		print(np.array((self.throttle, self.aileron, self.elevator, self.rudder)))
+
+		self.throttle, self.aileron, self.elevator, self.rudder = np.array((self.throttle, self.aileron, self.elevator, self.rudder)) + parsed_action
 		
 
 		
@@ -249,7 +261,7 @@ class MemoryServer:
 			data = self.sock.recvfrom(self.PACKAGE_SIZE)
 			address = data[1]
 			data = data[0]#.decode('utf8')   keep as bytes for unpickle
-			
+			print(data)
 
 			if not data:
 				break

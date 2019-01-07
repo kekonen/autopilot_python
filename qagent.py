@@ -43,21 +43,22 @@ class DQNAgent:
     def act(self, state):
         if np.random.rand() <= self.epsilon:
             return random.randrange(self.action_size)
-        act_values = self.model.predict(state)
+        act_values = self.model.predict(state.reshape((1,12)))
         return np.argmax(act_values[0]) # returns action
         
     def replay(self, batch_size):
         minibatch = random.sample(self.memory, batch_size)
         for state, action, reward, next_state in minibatch: # + done
+            print('predicting:', next_state.shape)
             target = (reward + self.gamma *
-                          np.amax(self.model.predict(next_state)[0]))
+                          np.amax(self.model.predict(next_state.reshape((1,12)))[0]))
             # target = reward
             # if not done:
             #     target = (reward + self.gamma *
             #               np.amax(self.model.predict(next_state)[0]))
-            target_f = self.model.predict(state)
+            target_f = self.model.predict(state.reshape((1,12)))
             target_f[0][action] = target
-            self.model.fit(state, target_f, epochs=1, verbose=0)
+            self.model.fit(state.reshape((1,12)), target_f, epochs=1, verbose=0)
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
