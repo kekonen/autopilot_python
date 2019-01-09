@@ -260,13 +260,17 @@ class MemoryServer:
 		while True:
 			data = self.sock.recvfrom(self.PACKAGE_SIZE)
 			address = data[1]
-			data = data[0]#.decode('utf8')   keep as bytes for unpickle
+			data = data[0].decode().strip()#.decode('utf8')   keep as bytes for unpickle
 			print(data)
 
 			if not data:
 				break
+			
+			if data == "s":
+				input('P for pause, C for checkpoint, S for Stop: >')
+				continue
 
-			answer = self.pilot.handleInput(data.decode().strip())
+			answer = self.pilot.handleInput(data)
 			print(answer)
 			if len(answer) > 0:
 				self.sock.sendto(answer.encode(), self.client_address)
@@ -275,3 +279,4 @@ a = MemoryServer("127.0.0.1", 1337, 1024)
 
 a.serve()
 # ncat -v localhost 1337 -u
+# ncat -v 127.0.0.1 1337 -u
