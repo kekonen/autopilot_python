@@ -149,7 +149,10 @@ class Pilot:
 
 		back = self.process(state)
 
-		return self.delimeter.join([str(val) for val in back]) + '\n'
+		if back:
+			return self.delimeter.join([str(val) for val in back]) + '\n'
+		else:
+			return False
 		# data = np.array(rawInput.split(self.delimeter)).astype(np.float)
 
 	
@@ -182,22 +185,24 @@ class Pilot:
 		# g, delta_g, gps_altitude, delta_gps_altitude, pitch, roll, delta_pitch, delta_roll, gps_vertical_speed, gps_ground_speed, heading, delta_heading, destination_heading, delta_destination_heading = input_data
 		reward = 0
 		if self.i > 3:
-			print('memory size:', len(self.memory))
+			# print('memory size:', len(self.memory))
 			reward = self.reward(self.memory[self.ithLast][0], state)
 
 			self.agent.remember(*self.memory[self.ithLast], reward, state)
 			# self.last_reward = reward
 
 		action = self.agent.act(state)
-		print('a:', action, 'r:', reward)
+		print( 'r:', reward)
+
+		return False
 
 		self.memory.appendleft((state, action))
 
 		# previous_action = self.memory[self.ithLast]
-		print(action)
+		# print(action)
 		parsed_action = self.parseAction(action)
 
-		print(np.array((self.throttle, self.aileron, self.elevator, self.rudder)))
+		# print(np.array((self.throttle, self.aileron, self.elevator, self.rudder)))
 
 		self.throttle, self.aileron, self.elevator, self.rudder = np.array((self.throttle, self.aileron, self.elevator, self.rudder)) + parsed_action
 		
@@ -267,12 +272,13 @@ class MemoryServer:
 				break
 			
 			if data == "s":
-				input('P for pause, C for checkpoint, S for Stop: >')
-				continue
+				command = input('c for continue, chp for checkpoint, s for Stop: >')
+				if command == 'c': continue
+				if command == 's': break
 
 			answer = self.pilot.handleInput(data)
-			print(answer)
-			if len(answer) > 0:
+			# print(answer)
+			if answer and len(answer) > 0:
 				self.sock.sendto(answer.encode(), self.client_address)
 
 a = MemoryServer("127.0.0.1", 1337, 1024)
