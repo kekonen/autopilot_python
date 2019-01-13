@@ -22,8 +22,8 @@ def playGame(train_indicator=0):    #1 means Train, 0 means simply Run
     BATCH_SIZE = 32
     GAMMA = 0.99
     TAU = 0.001     #Target Network HyperParameters
-    LRA = 0.01    #Learning rate for Actor
-    LRC = 0.01     #Lerning rate for Critic
+    LRA = 0.0001    #Learning rate for Actor
+    LRC = 0.001     #Lerning rate for Critic
 
 
     # Generate a Torcs environment
