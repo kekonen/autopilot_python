@@ -36,9 +36,9 @@ def playGame(train_indicator=0):    #1 means Train, 0 means simply Run
 
     np.random.seed(1337)
 
-    EXPLORE = 100000.
+    EXPLORE = 100000. *50
     episode_count = 2000
-    max_steps = 1000
+    max_steps = 350
     reward = 0
     done = False
     step = 0
@@ -140,6 +140,7 @@ def playGame(train_indicator=0):    #1 means Train, 0 means simply Run
             step += 1
             if done:
                 break
+            
 
         if np.mod(i, 3) == 0:
             if (train_indicator):
@@ -155,9 +156,11 @@ def playGame(train_indicator=0):    #1 means Train, 0 means simply Run
         print("TOTAL REWARD @ " + str(i) +"-th Episode  : Reward " + str(total_reward))
         print("Total Step: " + str(step))
         print("")
+        input('Next?')
+
 
     env.end()  # This is for shutting down TORCS
     print("Finish.")
 
 if __name__ == "__main__":
-    playGame()
+    playGame(1)

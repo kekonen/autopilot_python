@@ -11,7 +11,7 @@ import math
 # sys.setdefaultencoding("utf-8")
 # from future import unicode_literals
 # fgfs --generic=socket,out,10,localhost,1337,udp,my_out_protocol --generic=socket,in,10,,1338,udp,my_in_protocol --enable-fuel-freeze
-# --generic=socket,out,10,localhost,1337,udp,my_out_protocol --generic=socket,in,10,,1338,udp,my_in_protocol --prop:/sim/sound/voices/enabled=false --enable-fuel-freeze --altitude=20000 --heading=0 --pitch=-20 --prop:/controls/engines/engine/magnetos=1 --prop:/controls/engines/engine/throttle=1 --timeofday=noon
+# --generic=socket,out,10,localhost,1337,udp,my_out_protocol --generic=socket,in,10,,1338,udp,my_in_protocol --prop:/sim/sound/voices/enabled=false --enable-fuel-freeze --altitude=37000 --heading=0 --pitch=-20 --prop:/controls/engines/engine/magnetos=1 --prop:/controls/engines/engine/throttle=1 --timeofday=noon
 # 
 # 
 
@@ -165,7 +165,7 @@ class Pilot:
 		# dif1 = s1[8]-s1[1] + s1[9]-s1[2] + s1[10]-s1[3] + s1[11]-s1[4]
 
 		# reward = dif0-dif1
-		target = state[8:10]
+		target = state[-4:-2]
 		current = state[1:3]
 		g = (state[0] - 0.1)
 
@@ -236,10 +236,12 @@ class Environment:
 	def end(self):
 		self.sock.close()
 
-	def receive(self):
+	def receive(self, fake=False):
 		data = False
 		while not data:
 			data = self.sock.recvfrom(self.PACKAGE_SIZE)
+			# if fake:
+			# 	return
 			address = data[1]
 			data = data[0]#.decode('utf8')   keep as bytes for unpickle
 			# print(data)
@@ -256,6 +258,8 @@ class Environment:
 		self.send(action)
 
 		# may be needed to wait, or pass some inputs in order to get relevat info
+		# self.receive(fake=True)
+
 		data = self.receive()
 
 		# state, reward, done, info = self.pilot.handleOutput(data)
