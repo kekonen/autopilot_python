@@ -150,29 +150,27 @@ class Pilot:
 		# 	print(f'{"%.2f" % g}g|atl: {"%.2f" % (gps_altitude)} |pitch: {"%.2f" % (pitch)}|roll: {"%.2f" % (roll)}|ver: {"%.2f" % (gps_vertical_speed)}|gr: {"%.2f" % (gps_ground_speed)}|head:{"%.2f" % (heading)} | gps{destination_heading}| Δhead{delta_destination_heading}') # Δx:{data[7] - self.dest_latitude},Δy:{data[8] - self.dest_longitude}        Δ"%.2f" % ((gps_altitude - self.memory[self.ithLast][0][4])/self.maxDelta_gps_altitude)
 
 
-		back = self.process(state)
-
-		if back:
-			return self.delimeter.join([str(val) for val in back]) + '\n'
-		else:
-			return False
+		reward = self.reward(state)
+		done = False
+		#					   \/For now always not done
+		return [state, reward, done, '']
 		# data = np.array(rawInput.split(self.delimeter)).astype(np.float)
 
 	
-	def reward(self, s0, s1):
+	def reward(self, state):
 
 		# dif0 = s0[8]-s0[1] + s0[9]-s0[2] + s0[10]-s0[3] + s0[11]-s0[4]
 		# dif1 = s1[8]-s1[1] + s1[9]-s1[2] + s1[10]-s1[3] + s1[11]-s1[4]
 
 		# reward = dif0-dif1
-		target = s1[8:10]
-		current = s1[1:3]
-		g = (s1[0] - 0.1)
+		target = state[8:10]
+		current = state[1:3]
+		g = (state[0] - 0.1)
 
 		# print(f'{s1[8]}-{s1[1]} + {s1[9]}-{s1[2]}')
 		reward =  np.square((1- np.square(target-current).mean())  * (1-g if g>=0 else 1+g)) * 10
 
-		print( 'r:',reward , len(self.agent.memory))
+		# print( 'r:',reward))
 
 		if reward>1:
 			return 0
@@ -180,88 +178,11 @@ class Pilot:
 
 		return reward
 
-        # des = np.array(state[10:])
-        # sa = np.array(state[1:5])
-
-        # nsa = np.array(next_state[1:5])
-
-        # dS = mse_custom(des, sa) - mse_custom(des, nsa)
-
-        # return dS # + last_reward*self.discount_rate_last
-	
-	def parseAction(self, raw_action):
-		# raw_action.reshape((3,3,3,3))
-		# number = raw_action.argmax() + 1
-		# return np.array([int(i)-1 for i in (convert_base(raw_action, 3, 10)[::-1] + '000')[:4]]) * 0.05    CRAZY for 81 sized action
-		# print(raw_action)
-		if raw_action == 0:
-			return np.array((0, 1, 0, 0)) * 0.05
-		elif raw_action == 1:
-			return np.array((0, -1, 0, 0)) * 0.05
-		elif raw_action == 2:
-			return np.array((0, 0, 1, 0)) * 0.05
-		elif raw_action == 3:
-			return np.array((0, 0, -1, 0)) * 0.05
-		elif raw_action == 4:
-			return np.array((0, 0, 0, 1)) * 0.05
-		elif raw_action == 5:
-			return np.array((0, 0, 0, -1)) * 0.05
-		else:
-			return np.array((0, 0, 0, 0))
 
 
 
 	
-	def process(self, state):
-		# g, delta_g, gps_altitude, delta_gps_altitude, pitch, roll, delta_pitch, delta_roll, gps_vertical_speed, gps_ground_speed, heading, delta_heading, destination_heading, delta_destination_heading = input_data
-		self.i+=1
-		
-		reward = 0
-		if self.i > 4:
-			# print('memory size:', len(self.memory))
-			reward = self.reward(self.memory[self.ithLast][0], state)
-
-			self.agent.remember(*self.memory[self.ithLast], reward, state)
-			# self.last_reward = reward
-
-		action = self.agent.act(state)
-
-
-		
-
-
-		# previous_action = self.memory[self.ithLast]
-		# print(action)
-		
-
-		# print(np.array((self.throttle, self.aileron, self.elevator, self.rudder)))
-
-		self.memory.appendleft((state, action))
-		# return False
-		parsed_action = self.parseAction(action)
-#																			\/self.throttle
-		self.throttle, self.aileron, self.elevator, self.rudder = np.array((1, self.aileron, self.elevator, self.rudder)) + parsed_action
-		
-
-		
-		## throttle = 0
-		# if self.tact == 0:
-		# 	# Initiate act controls with random values, or actual network can be used
-		# 	self.throttle, self.aileron, self.elevator, self.rudder = np.array((self.throttle, self.aileron, self.elevator, self.rudder)) + np.random.rand(4)/4
-		# elif self.tact == 1:
-		# 	#			  [					Δ State 1-2										   ],  [			State 2						 ],  [					Act 1-2, 2-3						 ]
-		# 	self.last = [*[delta_g, delta_pitch, delta_roll,  delta_heading, delta_gps_altitude], *[g, pitch, roll, delta_destination_heading], *[self.throttle, self.aileron, self.elevator, self.rudder]]
-		# elif self.tact == 2:
-		# 	self.agent.remember(self.last, np.array([g, pitch, roll, delta_destination_heading]))
-		# 	self.tact = -1
-		
-		if len(self.agent.memory) > self.replay_size:
-			self.agent.replay(self.replay_size)
-		
-		# self.tact+=1
-
-		return [self.throttle, self.aileron, self.elevator, self.rudder] #[]#
-
+	
 		
 
 
@@ -280,7 +201,7 @@ class Pilot:
 # Indicated vertical speed	12
 
 
-class MemoryServer:
+class Environment:
 	def __init__(self, UDP_IP="127.0.0.1", UDP_PORT=1337, PACKAGE_SIZE=1024):
 		self.UDP_IP = UDP_IP
 		self.UDP_PORT = UDP_PORT
@@ -317,8 +238,33 @@ class MemoryServer:
 			if answer and len(answer) > 0:
 				self.sock.sendto(answer.encode(), self.client_address)
 
-a = MemoryServer("127.0.0.1", 1337, 1024)
+	def reset(self):
+		pass
 
-a.serve()
+	def end(self):
+		pass
+		
+	def step(self, action):
+		action_encoded = (self.delimeter.join([str(val) for val in action]) + '\n').encode()
+		self.sock.sendto(action_encoded, self.client_address)
+
+		# may be needed to wait, or pass some inputs in order to get relevat info
+
+		data = self.sock.recvfrom(self.PACKAGE_SIZE)
+		address = data[1]
+		data = data[0].decode().strip()#.decode('utf8')   keep as bytes for unpickle
+		# print(data)
+
+		if not data:
+			return 'FUCKED UP'
+
+		state, reward, done, info = self.pilot.handleInput(data)
+		return state, reward, done, info
+
+
+
+# a = Environment("127.0.0.1", 1337, 1024)
+
+# a.serve()
 # ncat -v localhost 1337 -u
 # ncat -v 127.0.0.1 1337 -u
