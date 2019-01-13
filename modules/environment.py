@@ -170,12 +170,14 @@ class Pilot:
 		g = (state[0] - 0.1)
 
 		# print(f'{s1[8]}-{s1[1]} + {s1[9]}-{s1[2]}')
-		reward =  np.square((1- np.square(target-current).mean())  * (1-g if g>=0 else 1+g)) * 10
+
+		# np.square((1- np.square(target-current).mean())  * (1-g if g>=0 else 1+g))         [0;1]
+		reward =  (           np.square((1- np.square(target-current).mean())  * (1-g if g>=0 else 1+g))          - 0.5) *10
 
 		# print( 'r:',reward))
 
-		if reward>1:
-			return 0
+		# if reward>1:
+		# 	return 0
 
 
 		return reward

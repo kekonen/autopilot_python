@@ -6,7 +6,7 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.optimizers import Adam
 import tensorflow as tf
-from keras.engine.training import collect_trainable_weights
+# from keras.engine.training import collect_trainable_weights
 import json
 
 from DDPG_Keras_Torcs.ReplayBuffer import ReplayBuffer
@@ -22,8 +22,8 @@ def playGame(train_indicator=0):    #1 means Train, 0 means simply Run
     BATCH_SIZE = 32
     GAMMA = 0.99
     TAU = 0.001     #Target Network HyperParameters
-    LRA = 0.0001    #Learning rate for Actor
-    LRC = 0.001     #Lerning rate for Critic
+    LRA = 0.01    #Learning rate for Actor
+    LRC = 0.01     #Lerning rate for Critic
 
 
     # Generate a Torcs environment
@@ -38,7 +38,7 @@ def playGame(train_indicator=0):    #1 means Train, 0 means simply Run
 
     EXPLORE = 100000.
     episode_count = 2000
-    max_steps = 100000
+    max_steps = 1000
     reward = 0
     done = False
     step = 0
