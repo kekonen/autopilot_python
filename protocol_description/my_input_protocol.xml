@@ -5,12 +5,12 @@
       <line_separator>newline</line_separator>
       <var_separator>;</var_separator>
 
-      <chunk>
+      <!-- <chunk>
          <node>/controls/engines/engine/throttle</node>
          <name>Throttle</name>
          <type>float</type>
          <format>%03.3f</format>
-      </chunk>
+      </chunk> -->
 
       <chunk>
          <node>/controls/flight/aileron</node>

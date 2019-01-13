@@ -110,6 +110,100 @@
         <format>%03.3f</format>
       </chunk>
 
+      <!-- 13 \/ -->
+
+      <chunk>
+        <node>/fdm/yasim/accelerations/a-x</node>
+        <name>Yasim acceleration X</name>
+        <type>float</type>
+        <format>%03.3f</format>
+      </chunk>
+
+      <chunk>
+        <node>/fdm/yasim/accelerations/a-y</node>
+        <name>Yasim acceleration Y</name>
+        <type>float</type>
+        <format>%03.3f</format>
+      </chunk>
+
+      <chunk>
+        <node>/fdm/yasim/accelerations/a-z</node>
+        <name>Yasim acceleration Z</name>
+        <type>float</type>
+        <format>%03.3f</format>
+      </chunk>
+
+      <!-- 16 \/ -->
+
+      <chunk>
+        <node>/fdm/yasim/accelerations/arot-x</node>
+        <name>Yasim rotation acceleration X</name>
+        <type>float</type>
+        <format>%03.3f</format>
+      </chunk>
+
+      <chunk>
+        <node>/fdm/yasim/accelerations/arot-y</node>
+        <name>Yasim rotation acceleration Y</name>
+        <type>float</type>
+        <format>%03.3f</format>
+      </chunk>
+
+      <chunk>
+        <node>/fdm/yasim/accelerations/arot-z</node>
+        <name>Yasim rotation acceleration Z</name>
+        <type>float</type>
+        <format>%03.3f</format>
+      </chunk>
+
+      <!-- 19 \/ -->
+
+      <chunk>
+        <node>/fdm/yasim/velocities/v-x</node>
+        <name>Yasim velocity X</name>
+        <type>float</type>
+        <format>%03.3f</format>
+      </chunk>
+
+      <chunk>
+        <node>/fdm/yasim/velocities/v-y</node>
+        <name>Yasim velocity Y</name>
+        <type>float</type>
+        <format>%03.3f</format>
+      </chunk>
+
+      <chunk>
+        <node>/fdm/yasim/velocities/v-z</node>
+        <name>Yasim velocity Z</name>
+        <type>float</type>
+        <format>%03.3f</format>
+      </chunk>
+
+      <!-- 22 \/ -->
+
+      <chunk>
+        <node>/fdm/yasim/velocities/vrot-x</node>
+        <name>Yasim rotation velocity X</name>
+        <type>float</type>
+        <format>%03.3f</format>
+      </chunk>
+
+      <chunk>
+        <node>/fdm/yasim/velocities/vrot-y</node>
+        <name>Yasim rotation velocity Y</name>
+        <type>float</type>
+        <format>%03.3f</format>
+      </chunk>
+
+      <chunk>
+        <node>/fdm/yasim/velocities/vrot-z</node>
+        <name>Yasim rotation velocity Z</name>
+        <type>float</type>
+        <format>%03.3f</format>
+      </chunk>
+
+
+
       <!-- <chunk>
         <node>x</node>
         <name>x</name>

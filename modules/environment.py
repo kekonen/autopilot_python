@@ -2,18 +2,16 @@ import socket
 import pickle
 import numpy as np
 import math
-import sys
-import select
-from collections import deque
 
 
-from pid import PID
-from qagent import DQNAgent
+
+# from pid import PID
+# from qagent import DQNAgent
 # reload(sys)
 # sys.setdefaultencoding("utf-8")
 # from future import unicode_literals
 # fgfs --generic=socket,out,10,localhost,1337,udp,my_out_protocol --generic=socket,in,10,,1338,udp,my_in_protocol --enable-fuel-freeze
-# --generic=socket,out,10,localhost,1337,udp,my_out_protocol --generic=socket,in,10,,1338,udp,my_in_protocol --prop:/sim/sound/voices/enabled=false --enable-fuel-freeze --altitude=20000 --heading=0 --pitch=-20 --prop:/controls/engines/engine/magnetos=1 --prop:/controls/engines/engine/throttle=1
+# --generic=socket,out,10,localhost,1337,udp,my_out_protocol --generic=socket,in,10,,1338,udp,my_in_protocol --prop:/sim/sound/voices/enabled=false --enable-fuel-freeze --altitude=20000 --heading=0 --pitch=-20 --prop:/controls/engines/engine/magnetos=1 --prop:/controls/engines/engine/throttle=1 --timeofday=noon
 # 
 # 
 
@@ -38,32 +36,12 @@ def convert_base(num, to_base=10, from_base=10):
 
 
 class Pilot:
-	def __init__(self, delimeter= ';'):
-		self.name = 'kek'
-		self.human_training = True
-		self.delimeter = delimeter
-		self.i = 0
-		self.tact = 0
-
+	def __init__(self, state_size = 24, action_size = 3, desired_pitch = 0, desired_roll = 0, desired_heading = 0, desired_altitude = 0.5):
 		self.dest_latitude = 21.32525     	# 19.754154
 		self.dest_longitude = -157.94319      # -156.044102
 
-		self.desired_pitch, self.desired_roll, self.desired_heading, self.desired_altitude = 0, 0, 0, 0.5
+		self.desired_pitch, self.desired_roll, self.desired_heading, self.desired_altitude = desired_pitch, desired_roll, desired_heading, desired_altitude
 
-		self.throttle = 0
-		self.aileron = 0
-		self.elevator = 0
-		self.rudder = 0
-
-		self.last_heading = 0
-		self.last_gps_altitude = 0
-
-		self.last_g = 0
-		self.last_pitch = 0
-		self.last_roll = 0
-
-		# self.tick = 0
-		self.rad = 0
 
 		self.maxG = 10
 		self.maxDelta_gps_altitude = 50
@@ -73,27 +51,21 @@ class Pilot:
 		self.maxRoll = 180
 		self.maxGps_vertical_speed = 20000
 		self.maxGps_ground_speed = 160
-# a, b, c, d = np.array(1, 2, 3, 4) + np.random.rand(4)/4
-		self.rollPID = PID(0.2, 0.01, 0.5)
-		self.headingPID = PID(-1.4, -0.3, -1)
 
-		state_size = 12
-		action_size = 7 # aileron(2), elevator(2), rudder(2), idle(1)  #9 directions * 3 throttle
-		self.agent = DQNAgent(state_size, action_size)
-		self.memory = deque(maxlen=5) 
+		self.maxAxy = 20.
+		self.maxAz = 100.
 
-		self.replay_size = 12
+		self.maxVx = 200.
+		self.maxVyz = 6.
+		
+		self.action_size = action_size 
+		self.state_size = state_size
+	
+	def action_state_sizes(self):
+		return self.action_size, self.state_size
 
-		self.ithLast = 0
-
-		self.last_reward = 0
-
-	def handleInput(self, rawInput):
-		# self.tick += 1
-		# print(rawInput)
-		data = np.array(rawInput.split(self.delimeter)).astype(np.float)
-		# print('d:',rawInput)
-
+	def parseState(self, data):
+		#                                                          GATHERING from data[]
 		g = data[0] #cool
 		heading = data[10] #cool
 		# delta_heading = heading - self.memory[self.ithLast, 9]
@@ -107,6 +79,23 @@ class Pilot:
 		gps_vertical_speed = data[5]
 		gps_ground_speed = data[9]
 
+		# Accelerations
+		a_x = data[13]
+		a_y = data[14]
+		a_z = data[15]
+
+		arot_x = data[16]
+		arot_y = data[17]
+		arot_z = data[18]
+
+		# Velocities
+		v_x = data[19]
+		v_y = data[20]
+		v_z = data[21]
+
+		vrot_x = data[22]
+		vrot_y = data[23]
+		vrot_z = data[24]
 
 		# Heading
 		gps_latitude = data[7]
@@ -124,13 +113,20 @@ class Pilot:
 
 		# Altitude
 		gps_altitude = data[6] #feet    if want meters *=.3048
-		# delta_gps_altitude = gps_altitude - self.memory[self.ithLast, 4]
 
 
-		# NORMALIZATION
+		#                                                                       NORMALIZATION
 		g /= self.maxG
 		# delta_g = g - self.memory[1, 0]
 
+		# Accelerations
+		a_x /= self.maxAxy
+		a_y /= self.maxAxy
+		a_z /= self.maxAz
+		# Velocities
+		v_x /= self.maxVx
+		v_y /= self.maxVyz
+		v_z /= self.maxVyz
 
 		pitch /= self.maxPitch
 		roll /= self.maxRoll
@@ -142,9 +138,15 @@ class Pilot:
 		gps_vertical_speed /= self.maxGps_vertical_speed
 		gps_ground_speed /= self.maxGps_ground_speed
 
-		actual_state = [g, pitch, roll, heading, gps_altitude, gps_vertical_speed, gps_ground_speed, delta_destination_heading] # 8 , gps_latitude, gps_longitude
+		actual_state = [g, pitch, roll, heading, gps_altitude, gps_vertical_speed, gps_ground_speed, delta_destination_heading, a_x, a_y, a_z, arot_x, arot_y, arot_z, v_x, v_y, v_z, vrot_x, vrot_y, vrot_z] # 20 , gps_latitude, gps_longitude
 		target = [self.desired_pitch, self.desired_roll, self.desired_heading, self.desired_altitude] # 4
 		state = np.array(actual_state + target)
+
+		return state
+
+	def handleOutput(self, data):
+
+		state = self.parseState(data)
 
 		# if self.i > 0:
 		# 	print(f'{"%.2f" % g}g|atl: {"%.2f" % (gps_altitude)} |pitch: {"%.2f" % (pitch)}|roll: {"%.2f" % (roll)}|ver: {"%.2f" % (gps_vertical_speed)}|gr: {"%.2f" % (gps_ground_speed)}|head:{"%.2f" % (heading)} | gps{destination_heading}| Δhead{delta_destination_heading}') # Δx:{data[7] - self.dest_latitude},Δy:{data[8] - self.dest_longitude}        Δ"%.2f" % ((gps_altitude - self.memory[self.ithLast][0][4])/self.maxDelta_gps_altitude)
@@ -152,9 +154,9 @@ class Pilot:
 
 		reward = self.reward(state)
 		done = False
+		info = ''
 		#					   \/For now always not done
-		return [state, reward, done, '']
-		# data = np.array(rawInput.split(self.delimeter)).astype(np.float)
+		return [state, reward, done, info]
 
 	
 	def reward(self, state):
@@ -202,10 +204,12 @@ class Pilot:
 
 
 class Environment:
-	def __init__(self, UDP_IP="127.0.0.1", UDP_PORT=1337, PACKAGE_SIZE=1024):
+	def __init__(self, UDP_IP="127.0.0.1", UDP_PORT=1337, PACKAGE_SIZE=1024, delimeter= ';'):
 		self.UDP_IP = UDP_IP
 		self.UDP_PORT = UDP_PORT
 		self.PACKAGE_SIZE = PACKAGE_SIZE
+
+		self.delimeter = delimeter
 
 		self.client_address = (self.UDP_IP, 1338)
 
@@ -215,51 +219,46 @@ class Environment:
 
 		self.pilot = Pilot()
 
-	def serve(self):
-		True_var = True
-		default_answer = ''
-		while True:
-			data = self.sock.recvfrom(self.PACKAGE_SIZE)
-			address = data[1]
-			data = data[0].decode().strip()#.decode('utf8')   keep as bytes for unpickle
-			# print(data)
 
-			if not data:
-				break
-			
-			if data == "s":
-				command = input(f"c for continue, s for Stop, h for {'off' if self.pilot.human_training else 'on'} human training: >")
-				if command == 'c': continue
-				if command == 'h': self.pilot.human_training != self.pilot.human_training
-				if command == 's': break
+	def reset(self, relaunch = False):
+		# add total recet of the environment
 
-			answer = self.pilot.handleInput(data)
-			# print(answer)
-			if answer and len(answer) > 0:
-				self.sock.sendto(answer.encode(), self.client_address)
+		data = self.receive()
 
-	def reset(self):
-		pass
+		return self.pilot.handleOutput(data)[0]
+
+
+	def action_state_sizes(self):
+		return self.pilot.action_state_sizes()
 
 	def end(self):
-		pass
+		self.sock.close()
+
+	def receive(self):
+		data = False
+		while not data:
+			data = self.sock.recvfrom(self.PACKAGE_SIZE)
+			address = data[1]
+			data = data[0]#.decode('utf8')   keep as bytes for unpickle
+			# print(data)
 		
-	def step(self, action):
+		data = np.array(data.decode().strip().split(self.delimeter)).astype(np.float)
+
+		return data
+
+	def send(self, action): # action as an array
 		action_encoded = (self.delimeter.join([str(val) for val in action]) + '\n').encode()
 		self.sock.sendto(action_encoded, self.client_address)
 
+	def step(self, action):
+		self.send(action)
+
 		# may be needed to wait, or pass some inputs in order to get relevat info
+		data = self.receive()
 
-		data = self.sock.recvfrom(self.PACKAGE_SIZE)
-		address = data[1]
-		data = data[0].decode().strip()#.decode('utf8')   keep as bytes for unpickle
-		# print(data)
+		# state, reward, done, info = self.pilot.handleOutput(data)
 
-		if not data:
-			return 'FUCKED UP'
-
-		state, reward, done, info = self.pilot.handleInput(data)
-		return state, reward, done, info
+		return self.pilot.handleOutput(data)
 
 
 
